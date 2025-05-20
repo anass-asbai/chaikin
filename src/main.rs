@@ -5,7 +5,7 @@ struct App {
     chaikin_points: Vec<Vec2>,
     start_animation: bool,
     steps: u32,
-    last_update_time: f64,
+    last_update: f64,
     animation_interval: f64,
 }
 
@@ -16,7 +16,7 @@ impl App {
             chaikin_points: Vec::new(),
             start_animation: false,
             steps: 0,
-            last_update_time: 0.0,
+            last_update: 0.0,
             animation_interval: 0.5,
         }
     }
@@ -71,8 +71,8 @@ impl App {
             }
 
             let current_time = get_time();
-            if current_time - self.last_update_time >= self.animation_interval {
-                self.last_update_time = current_time;
+            if current_time - self.last_update >= self.animation_interval {
+                self.last_update = current_time;
 
                 self.chaikin();
                 self.steps += 1;
@@ -106,7 +106,7 @@ async fn main() {
         if is_key_pressed(KeyCode::Enter) {
             if !app.start_animation {
                 app.chaikin_points = app.default_points.clone();
-                app.last_update_time = get_time();
+                app.last_update = get_time();
             }
 
             app.start_animation = true;
