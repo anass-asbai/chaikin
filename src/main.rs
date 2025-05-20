@@ -7,7 +7,6 @@ struct App {
     chaikin_points: Vec<Vec2>,
     start_animation: bool,
     steps: u32,
-    interval: u32,
 }
 
 impl App {
@@ -17,7 +16,6 @@ impl App {
             chaikin_points: Vec::new(),
             start_animation: false,
             steps: 0,
-            interval: 0,
         }
     }
 
@@ -61,6 +59,29 @@ impl App {
 
         self.chaikin_points = new_points;
     }
+
+    fn animate(&mut self) {
+        if self.chaikin_points.len() >= 2 {
+            for i in 0..self.chaikin_points.len() - 1 {
+                let start = self.chaikin_points[i];
+                let end = self.chaikin_points[i + 1];
+                draw_line(start.x, start.y, end.x, end.y, 2.0, WHITE);
+            }
+
+            thread::sleep(time::Duration::from_millis(500));
+
+            self.chaikin();
+            
+            self.steps += 1;
+
+            if self.steps == 7 {
+                self.chaikin_points = self.default_points.clone();
+                self.steps = 0;
+            }
+        } else {
+            self.start_animation = false;
+        }
+    }
 }
 
 #[macroquad::main("Interactive Points Example")]
@@ -79,30 +100,15 @@ async fn main() {
         }
 
         if is_key_pressed(KeyCode::Enter) {
-            app.chaikin_points = app.default_points.clone();
+            if !app.start_animation {
+                app.chaikin_points = app.default_points.clone();
+            }
+
             app.start_animation = true;
         }
 
         if app.start_animation {
-            if app.chaikin_points.len() >= 2 {
-                for i in 0..app.chaikin_points.len() - 1 {
-                    let start = app.chaikin_points[i];
-                    let end = app.chaikin_points[i + 1];
-                    draw_line(start.x, start.y, end.x, end.y, 2.0, WHITE);
-                }
-
-                thread::sleep(time::Duration::from_millis(500));
-
-                app.chaikin();
-                app.steps += 1;
-
-                if app.steps == 7 {
-                    app.chaikin_points = app.default_points.clone();
-                    app.steps = 0;
-                }
-            } else {
-                app.start_animation = false;
-            }
+            app.animate();
         } else {
             if is_mouse_button_pressed(MouseButton::Left) {
                 let (x, y) = mouse_position();
@@ -112,6 +118,7 @@ async fn main() {
 
         for point in &app.default_points {
             draw_circle(point.x, point.y, 3.0, WHITE);
+            draw_circle(point.x, point.y, 2.0, BLACK);
         }
 
         // ui instructions
@@ -131,13 +138,7 @@ async fn main() {
             WHITE,
         );
 
-        draw_text(
-            &format!("init Points: {}", app.chaikin_points.len()),
-            10.0,
-            80.0,
-            20.0,
-            WHITE,
-        );
+        draw_text(&format!("steps: {}", app.steps), 20.0, 80.0, 20.0, WHITE);
 
         next_frame().await;
     }
