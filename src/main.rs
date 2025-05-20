@@ -1,24 +1,28 @@
+use std::{thread, time};
+
 use macroquad::prelude::*;
 
 struct App {
+    default_points: Vec<Vec2>,
+    chaikin_points: Vec<Vec2>,
     start_animation: bool,
-    chaikin: bool,
-    steps: u32, // from 0 to 7 for animation
-    points: Vec<Vec2>,
+    steps: u32,
+    interval: u32,
 }
 
 impl App {
     pub fn new() -> Self {
         Self {
+            default_points: Vec::new(),
+            chaikin_points: Vec::new(),
             start_animation: false,
-            chaikin: true,
             steps: 0,
-            points: Vec::new(),
+            interval: 0,
         }
     }
 
     pub fn add_point(&mut self, x: f32, y: f32) {
-        self.points.push(vec2(x, y));
+        self.default_points.push(vec2(x, y))
     }
 
     pub fn clear(&mut self) {
@@ -26,14 +30,17 @@ impl App {
     }
 
     fn chaikin(&mut self) {
-        let length = self.points.len();
-        let start = self.points[0];
-        let end = self.points[length - 1];
+        let points = &self.chaikin_points;
+
+        let length = points.len();
+        let start = points[0];
+        let end = points[length - 1];
+
         let mut new_points = vec![start];
 
         for i in 0..length - 1 {
-            let current = self.points[i];
-            let next = self.points[i + 1];
+            let current = points[i];
+            let next = points[i + 1];
             let dx = next.x - current.x;
             let dy = next.y - current.y;
 
@@ -52,7 +59,7 @@ impl App {
 
         new_points.push(end);
 
-        self.points = new_points;
+        self.chaikin_points = new_points;
     }
 }
 
@@ -61,63 +68,77 @@ async fn main() {
     let mut app: App = App::new();
 
     loop {
+        clear_background(BLACK);
+
         if is_key_pressed(KeyCode::Escape) {
             break;
-        }
-
-        if is_key_pressed(KeyCode::Enter) {
-            app.chaikin = true;
-            app.start_animation = true;
-        }
-
-        if is_mouse_button_pressed(MouseButton::Left) {
-            if !app.start_animation{
-            let (x, y) = mouse_position();
-            app.add_point(x, y);
-            }
         }
 
         if is_key_pressed(KeyCode::C) {
             app.clear();
         }
 
-        clear_background(BLACK);
+        if is_key_pressed(KeyCode::Enter) {
+            app.chaikin_points = app.default_points.clone();
+            app.start_animation = true;
+        }
 
         if app.start_animation {
-            if app.points.len() >= 2 {
-                if app.chaikin {
-                    app.chaikin();
-                }
-                for i in 0..app.points.len() - 1 {
-                    let start = app.points[i];
-                    let end = app.points[i + 1];
+            if app.chaikin_points.len() >= 2 {
+                for i in 0..app.chaikin_points.len() - 1 {
+                    let start = app.chaikin_points[i];
+                    let end = app.chaikin_points[i + 1];
                     draw_line(start.x, start.y, end.x, end.y, 2.0, WHITE);
                 }
-                app.chaikin = false;
+
+                thread::sleep(time::Duration::from_millis(500));
+
+                app.chaikin();
+                app.steps += 1;
+
+                if app.steps == 7 {
+                    app.chaikin_points = app.default_points.clone();
+                    app.steps = 0;
+                }
+            } else {
+                app.start_animation = false;
+            }
+        } else {
+            if is_mouse_button_pressed(MouseButton::Left) {
+                let (x, y) = mouse_position();
+                app.add_point(x, y);
             }
         }
 
-        for point in &app.points {
-            draw_circle(point.x, point.y, 2.0, WHITE);
+        for point in &app.default_points {
+            draw_circle(point.x, point.y, 3.0, WHITE);
         }
 
-        // Draw UI instructions
+        // ui instructions
         draw_text(
             "Left click to add points | C to clear | ESC to exit",
             20.0,
             20.0,
-            20.0,
-            WHITE,
+            25.0,
+            RED,
         );
+
         draw_text(
-            &format!("Points: {}", app.points.len()),
+            &format!("init Points: {}", app.default_points.len()),
             20.0,
             50.0,
             20.0,
             WHITE,
         );
 
-        // Wait for next frame
+        draw_text(
+            &format!("init Points: {}", app.chaikin_points.len()),
+            10.0,
+            80.0,
+            20.0,
+            WHITE,
+        );
+
         next_frame().await;
     }
 }
