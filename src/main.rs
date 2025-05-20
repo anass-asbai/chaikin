@@ -58,7 +58,7 @@ impl App {
 
 #[macroquad::main("Interactive Points Example")]
 async fn main() {
-    let mut app = App::new();
+    let mut app: App = App::new();
 
     loop {
         if is_key_pressed(KeyCode::Escape) {
@@ -71,8 +71,10 @@ async fn main() {
         }
 
         if is_mouse_button_pressed(MouseButton::Left) {
+            if !app.start_animation{
             let (x, y) = mouse_position();
             app.add_point(x, y);
+            }
         }
 
         if is_key_pressed(KeyCode::C) {
