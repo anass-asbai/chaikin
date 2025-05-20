@@ -1,5 +1,3 @@
-use std::{thread, time};
-
 use macroquad::prelude::*;
 
 struct App {
@@ -7,6 +5,8 @@ struct App {
     chaikin_points: Vec<Vec2>,
     start_animation: bool,
     steps: u32,
+    last_update_time: f64,
+    animation_interval: f64,
 }
 
 impl App {
@@ -16,6 +16,8 @@ impl App {
             chaikin_points: Vec::new(),
             start_animation: false,
             steps: 0,
+            last_update_time: 0.0,
+            animation_interval: 0.5,
         }
     }
 
@@ -68,15 +70,17 @@ impl App {
                 draw_line(start.x, start.y, end.x, end.y, 2.0, WHITE);
             }
 
-            thread::sleep(time::Duration::from_millis(500));
+            let current_time = get_time();
+            if current_time - self.last_update_time >= self.animation_interval {
+                self.last_update_time = current_time;
 
-            self.chaikin();
-            
-            self.steps += 1;
+                self.chaikin();
+                self.steps += 1;
 
-            if self.steps == 7 {
-                self.chaikin_points = self.default_points.clone();
-                self.steps = 0;
+                if self.steps == 7 {
+                    self.chaikin_points = self.default_points.clone();
+                    self.steps = 0;
+                }
             }
         } else {
             self.start_animation = false;
@@ -102,6 +106,7 @@ async fn main() {
         if is_key_pressed(KeyCode::Enter) {
             if !app.start_animation {
                 app.chaikin_points = app.default_points.clone();
+                app.last_update_time = get_time();
             }
 
             app.start_animation = true;
